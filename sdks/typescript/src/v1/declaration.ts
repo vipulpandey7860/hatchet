@@ -525,12 +525,15 @@ export class BaseWorkflowDeclaration<
       warn: (message) => this.client!.admin.logger.warn(message),
     });
 
+    // Snapshot childIndex before incrementing, as runNoWait does. Reading it afterwards gives the
+    // next spawn this batch's first index, and the engine returns that child instead of a new run.
+    const baseChildIndex = parentRunContext?.childIndex;
     parentRunContextManager.incrementChildIndex(runs.length);
 
     const baseOpts = {
       parentId: parentRunContext?.parentId,
       parentTaskRunExternalId: parentRunContext?.parentTaskRunExternalId,
-      childIndex: parentRunContext?.childIndex,
+      childIndex: baseChildIndex,
     };
 
     let resp: WorkflowRunRef<O>[] = [];

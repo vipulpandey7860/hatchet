@@ -40,6 +40,25 @@ childIndexParent.task({
   },
 });
 
+// runManyNoWait followed by runNoWait in the same task: every spawn needs its own child index,
+// otherwise the engine hands back an earlier child instead of creating a new one.
+export const childIndexBulkThenSingle = hatchet.task({
+  name: 'child-index-bulk-then-single',
+  executionTimeout: '3m',
+  fn: async (input: { n: number }) => {
+    const bulk = await childIndexChild.runManyNoWait(
+      Array.from({ length: input.n }, (_, i) => ({ input: { tag: `many-${i}` } }))
+    );
+    const single = await childIndexChild.runNoWait({ tag: 'after-many' });
+
+    const refs = [...bulk, single];
+    const runIds = await Promise.all(refs.map((r) => r.runId));
+    const outputs = await Promise.all(refs.map((r) => r.output));
+
+    return { runIds, tags: outputs.map((o) => o.tag) };
+  },
+});
+
 // Simulates recursive hierarchy of entities
 // (fund → portfolio → project) where the orchestrator walks bottom-up,
 // calling scenarioWorkflow.runNoWait() for each node and waiting for it
