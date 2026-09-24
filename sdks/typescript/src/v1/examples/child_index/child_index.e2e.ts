@@ -1,5 +1,5 @@
 import { makeE2EClient } from '../__e2e__/harness';
-import { childIndexParent, orchestratorTask } from './workflow';
+import { childIndexBulkThenSingle, childIndexParent, orchestratorTask } from './workflow';
 
 describe('child-index-e2e', () => {
   const hatchet = makeE2EClient();
@@ -38,6 +38,15 @@ describe('child-index-e2e', () => {
 
     const uniqueRunIds = new Set(data.runIds as string[]);
     expect(uniqueRunIds.size).toBe(N);
+  }, 120_000);
+
+  it('gives the spawn after runManyNoWait its own child index', async () => {
+    const N = 3;
+    const result = await childIndexBulkThenSingle.run({ n: N });
+
+    const expectedTags = Array.from({ length: N }, (_, i) => `many-${i}`);
+    expect(result.tags).toEqual([...expectedTags, 'after-many']);
+    expect(new Set(result.runIds).size).toBe(N + 1);
   }, 120_000);
 
   it('recursive bottom-up tree traversal produces unique run IDs for every node', async () => {
